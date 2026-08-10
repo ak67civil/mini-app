@@ -371,6 +371,14 @@
   const tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
+  if (tg && tg.initData) {
+    fetch('/api/visit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData: tg.initData }),
+    }).catch(() => {});
+  }
+
   let COURSES = [];
   let OWNER_USERNAME = '';
   let activeCategory = 'All';
@@ -406,6 +414,12 @@
     renderGrid();
   }
 
+  function imgSrc(c) {
+    if (c.image_url) return c.image_url;
+    if (c.has_image) return `/api/image/${c.id}`;
+    return null;
+  }
+
   function renderGrid() {
     const list = activeCategory === 'All' ? COURSES : COURSES.filter(c => c.category === activeCategory);
     const gridEl = document.getElementById('grid');
@@ -416,7 +430,7 @@
     gridEl.innerHTML = list.map(c => `
       <div class="card" onclick="openDetail('${c.id}')">
         ${c.batch_start ? `<div class="stamp">${escapeHtml(c.batch_start)}</div>` : ''}
-        ${c.has_image ? `<img class="card-img" src="/api/image/${c.id}" alt="">` : ''}
+        ${imgSrc(c) ? `<img class="card-img" src="${imgSrc(c)}" alt="">` : ''}
         <div class="card-body">
           <div class="card-cat">${escapeHtml(c.category)}</div>
           <div class="card-title">${escapeHtml(c.name)}</div>
@@ -438,7 +452,7 @@
     const c = COURSES.find(x => x.id === id);
     if (!c) return;
     document.getElementById('detail-body').innerHTML = `
-      ${c.has_image ? `<img class="detail-img" src="/api/image/${c.id}" alt="">` : ''}
+      ${imgSrc(c) ? `<img class="detail-img" src="${imgSrc(c)}" alt="">` : ''}
       <div class="detail-cat">${escapeHtml(c.category)}</div>
       <div class="detail-title">${escapeHtml(c.name)}</div>
       <div class="facts">
@@ -483,4 +497,4 @@
 </script>
 
 </body>
-  </html>
+</html>
