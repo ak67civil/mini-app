@@ -357,6 +357,21 @@
   }
   .topic-row:last-of-type + .topic-detail { border-bottom: none; }
 
+  .topic-summary {
+    padding-bottom: 8px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .topic-children {
+    border-top: 1px dashed var(--line);
+    margin: 0 -14px;
+  }
+  .topic-children .topic-row,
+  .topic-children .topic-detail {
+    background: var(--paper);
+  }
+
   .cta-bar {
     position: fixed;
     bottom: 0;
@@ -492,9 +507,11 @@
     `).join('');
   }
 
-  function toggleTopic(i) {
-    const detail = document.getElementById(`topic-detail-${i}`);
-    const arrow = document.getElementById(`topic-arrow-${i}`);
+  let topicIdCounter = 0;
+
+  function toggleTopic(uid) {
+    const detail = document.getElementById(`topic-detail-${uid}`);
+    const arrow = document.getElementById(`topic-arrow-${uid}`);
     const isOpen = detail.style.display === 'block';
     detail.style.display = isOpen ? 'none' : 'block';
     arrow.textContent = isOpen ? '▾' : '▴';
@@ -508,10 +525,28 @@
     return `${t.count || 0} item${(t.count || 0) === 1 ? '' : 's'}`;
   }
 
+  function renderTopicNode(t, depth) {
+    const uid = `t${topicIdCounter++}`;
+    const hasChildren = t.children && t.children.length > 0;
+    const indentStyle = depth > 0 ? ` style="padding-left: ${14 + depth * 16}px;"` : '';
+    const inner = hasChildren
+      ? `<div class="topic-summary">${escapeHtml(topicCountText(t))} total</div>`
+        + `<div class="topic-children">${t.children.map(child => renderTopicNode(child, depth + 1)).join('')}</div>`
+      : escapeHtml(topicCountText(t));
+    return `
+      <div class="topic-row"${indentStyle} onclick="toggleTopic('${uid}')">
+        <div class="topic-name">${escapeHtml(t.name)}</div>
+        <div class="topic-arrow" id="topic-arrow-${uid}">▾</div>
+      </div>
+      <div class="topic-detail" id="topic-detail-${uid}">${inner}</div>
+    `;
+  }
+
   function openDetail(id) {
     const c = COURSES.find(x => x.id === id);
     if (!c) return;
     const hasTopics = c.topics && c.topics.length;
+    topicIdCounter = 0;
 
     document.getElementById('detail-body').innerHTML = `
       ${imgSrc(c) ? `<img class="detail-img" src="${imgSrc(c)}" alt="">` : ''}
@@ -526,13 +561,7 @@
       ${hasTopics ? `
         <div class="section-label">Topics Covered — tap to see what's inside</div>
         <div class="topics-list">
-          ${c.topics.map((t, i) => `
-            <div class="topic-row" onclick="toggleTopic(${i})">
-              <div class="topic-name">${escapeHtml(t.name)}</div>
-              <div class="topic-arrow" id="topic-arrow-${i}">▾</div>
-            </div>
-            <div class="topic-detail" id="topic-detail-${i}">${escapeHtml(topicCountText(t))}</div>
-          `).join('')}
+          ${c.topics.map(t => renderTopicNode(t, 0)).join('')}
         </div>
       ` : (c.subjects ? `<div class="section-label">Subjects Covered</div><div class="desc">${escapeHtml(c.subjects)}</div>` : '')}
       <div class="section-label">About This Batch</div>
