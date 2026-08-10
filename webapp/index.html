@@ -203,6 +203,7 @@
     font-size: 13px;
   }
 
+  /* Detail view */
   #detail {
     position: fixed;
     inset: 0;
@@ -312,6 +313,49 @@
     color: var(--ink-soft);
     white-space: pre-wrap;
   }
+
+  .topics-list {
+    border: 1.5px solid var(--ink);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .topic-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 14px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .topic-row:last-of-type { border-bottom: none; }
+
+  .topic-name {
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .topic-arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--mustard);
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+
+  .topic-detail {
+    display: none;
+    padding: 0 14px 13px;
+    margin-top: -8px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: var(--slate);
+  }
+  .topic-row:last-of-type + .topic-detail { border-bottom: none; }
 
   .cta-bar {
     position: fixed;
@@ -448,18 +492,49 @@
     `).join('');
   }
 
+  function toggleTopic(i) {
+    const detail = document.getElementById(`topic-detail-${i}`);
+    const arrow = document.getElementById(`topic-arrow-${i}`);
+    const isOpen = detail.style.display === 'block';
+    detail.style.display = isOpen ? 'none' : 'block';
+    arrow.textContent = isOpen ? '▾' : '▴';
+  }
+
+  function topicCountText(t) {
+    const parts = [];
+    if (t.video) parts.push(`${t.video} video${t.video > 1 ? 's' : ''}`);
+    if (t.pdf) parts.push(`${t.pdf} PDF${t.pdf > 1 ? 's' : ''}`);
+    if (parts.length) return parts.join(', ');
+    return `${t.count || 0} item${(t.count || 0) === 1 ? '' : 's'}`;
+  }
+
   function openDetail(id) {
     const c = COURSES.find(x => x.id === id);
     if (!c) return;
+    const hasTopics = c.topics && c.topics.length;
+
     document.getElementById('detail-body').innerHTML = `
       ${imgSrc(c) ? `<img class="detail-img" src="${imgSrc(c)}" alt="">` : ''}
       <div class="detail-cat">${escapeHtml(c.category)}</div>
       <div class="detail-title">${escapeHtml(c.name)}</div>
       <div class="facts">
         ${c.batch_start ? `<div class="fact"><div class="fact-label">Batch Starts</div><div class="fact-value">${escapeHtml(c.batch_start)}</div></div>` : ''}
-        ${c.lecture_count ? `<div class="fact"><div class="fact-label">Lectures</div><div class="fact-value">${c.lecture_count}</div></div>` : ''}
+        ${hasTopics
+          ? `<div class="fact"><div class="fact-label">Topics</div><div class="fact-value">${c.topics.length}</div></div>`
+          : (c.lecture_count ? `<div class="fact"><div class="fact-label">Lectures</div><div class="fact-value">${c.lecture_count}</div></div>` : '')}
       </div>
-      ${c.subjects ? `<div class="section-label">Subjects Covered</div><div class="desc">${escapeHtml(c.subjects)}</div>` : ''}
+      ${hasTopics ? `
+        <div class="section-label">Topics Covered — tap to see what's inside</div>
+        <div class="topics-list">
+          ${c.topics.map((t, i) => `
+            <div class="topic-row" onclick="toggleTopic(${i})">
+              <div class="topic-name">${escapeHtml(t.name)}</div>
+              <div class="topic-arrow" id="topic-arrow-${i}">▾</div>
+            </div>
+            <div class="topic-detail" id="topic-detail-${i}">${escapeHtml(topicCountText(t))}</div>
+          `).join('')}
+        </div>
+      ` : (c.subjects ? `<div class="section-label">Subjects Covered</div><div class="desc">${escapeHtml(c.subjects)}</div>` : '')}
       <div class="section-label">About This Batch</div>
       <div class="desc">${escapeHtml(c.description || 'No additional details provided.')}</div>
     `;
